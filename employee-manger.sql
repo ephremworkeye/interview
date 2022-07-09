@@ -44,7 +44,7 @@ inner join cte as c
 on e.EmployeeID = c.ManagerID
 )
 
-select e.EmployeeName, m.EmployeeName
+select e.EmployeeName, ISNULL(m.EmployeeName, 'No boss') as Manager
 from cte as e
 left join cte as m
 on e.ManagerID = m.EmployeeID
