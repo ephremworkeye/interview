@@ -1,3 +1,4 @@
+USE Northwind;
 -- 21. In the Customers table, show the total number of customers per Country and City.
 
 SELECT
@@ -88,6 +89,21 @@ from orders
 where YEAR(OrderDate) = 2015
 GROUP BY ShipCountry
 order by totalFreight DESC
+
+
+Select 
+    Top 3 ShipCountry,
+    AverageFreight = avg(freight) 
+From Orders 
+--Where OrderDate between '1/1/2015' and '12/31/2015' 
+Where OrderDate >= '1/1/2015' and OrderDate <= '12/31/2015' 
+Group By ShipCountry 
+Order By AverageFreight desc
+
+SELECT 
+    OrderID, OrderDate, ShipCountry, Freight
+FROM orders ORDER BY OrderDate
+
 
 
 
