@@ -104,3 +104,6 @@ DELETE d2
 FROM dup2 as d1
 inner JOIN dup2 as d2
 on d1.name = d2.name AND d1.email = d2.email and d2.id > d1.id  
+
+
+--transform row to column
