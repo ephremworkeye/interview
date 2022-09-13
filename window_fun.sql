@@ -1,3 +1,5 @@
+use TSQLV4;
+
 GO
 WITH CTE AS (
 SELECT 
@@ -25,3 +27,10 @@ ORDER BY CUSTID, ORDERYEAR
 
 SELECT
 * FROM Sales.EmpOrders
+
+
+use test3;
+
+select * from dup
+INTERSECT 
+select * from dup
