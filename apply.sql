@@ -1,4 +1,4 @@
-
+use TEST4
 create function fn_getEmployeesByDepartment(@deptid int)
 returns table
 as 
@@ -15,7 +15,5 @@ inner join Employee as e
 on d.id = e.DeptId
 
 
-
+select e.DeptId, e.name, e.salary from Employee as e
 cross apply fn_getEmployeesByDepartment(e.deptid)
-select e.DeptId, e.Name, e.Salary
-from Employee as e
