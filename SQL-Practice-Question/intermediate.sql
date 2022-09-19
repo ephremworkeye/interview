@@ -107,6 +107,50 @@ FROM orders ORDER BY OrderDate
 
 
 
+--41. Late orders Some customers are complaining about their orders arriving late. Which orders are late?
+
+
+SELECT
+    OrderId,
+    CONVERT(date, OrderDate) AS OrderDate,  
+    CONVERT(date, RequiredDate) AS RequiredDate,
+    CONVERT(date, ShippedDate) AS ShippedDate
+FROM Orders
+WHERE RequiredDate <= ShippedDate
+
+
+-- 42. Late orders - which employees? Some salespeople have more orders arriving late than others.
+-- Maybe they're not following up on the order process, and need more training. Which salespeople 
+--have the most orders arriving late?
+
+ SELECT 
+    e.EmployeeID,
+    e.LastName,
+    COUNT(o.OrderID) AS TotalLateOrders
+ FROM Employees AS e
+ INNER JOIN Orders AS o 
+ ON e.EmployeeID = o.EmployeeID
+ WHERE o.RequiredDate <= o.ShippedDate 
+ GROUP BY e.EmployeeID, e.LastName
+ ORDER BY TotalLateOrders DESC
+
+
+--  43. Late orders vs. total orders Andrew, the VP of sales, has been doing some more thinking 
+--  some more about the problem of late orders. He realizes that just looking at the number of 
+--  orders arriving late for each salesperson isn't a good idea. It needs to be compared against 
+--  the total number of orders per salesperson. Return results like the following:
+
+
+SELECT
+    e.EmployeeID,
+    e.LastName, 
+    COUNT(o.OrderID) AS TotalOrders,
+    COUNT(CASE WHEN o.RequiredDate <= o.ShippedDate THEN 1 ELSE NULL END) AS TotalLateOrders
+FROM Employees AS e INNER JOIN Orders AS o 
+ON e.EmployeeID = o.EmployeeID
+GROUP BY e.EmployeeID, e.LastName
+--HAVING COUNT(CASE WHEN o.RequiredDate <= o.ShippedDate THEN 1 ELSE NULL END) > 0
+ORDER BY e.EmployeeID
 
 
 
