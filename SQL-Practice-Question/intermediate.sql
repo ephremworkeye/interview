@@ -152,5 +152,283 @@ GROUP BY e.EmployeeID, e.LastName
 --HAVING COUNT(CASE WHEN o.RequiredDate <= o.ShippedDate THEN 1 ELSE NULL END) > 0
 ORDER BY e.EmployeeID
 
+--with second method using two cte's
+
+GO;
+
+WITH totalOrders AS (
+    SELECT
+        o.EmployeeID, 
+        COUNT(*) AS TotalOrders
+    FROM Orders AS o
+    GROUP BY o.EmployeeID
+), lateOrders AS (
+    SELECT
+        o.EmployeeID, 
+        COUNT(*) AS LateOrders
+    FROM Orders AS o
+    WHERE o.RequiredDate <= o.ShippedDate
+    GROUP BY o.EmployeeID
+ )
+
+SELECT
+    e.EmployeeID, 
+    e.LastName, 
+    t.TotalOrders, 
+    l.LateOrders
+FROM Employees AS e
+INNER JOIN totalOrders as t 
+    ON e.EmployeeID = t.EmployeeID
+INNER JOIN lateOrders as l 
+    ON t.EmployeeID = l.EmployeeID
+
+
+-- 44. Late orders vs. total orders - missing employee There's an employee missing in the answer 
+-- from the problem above. Fix the SQL to show all employees who have taken orders.
+
+GO;
+WITH totalOrders AS (
+    SELECT
+        o.EmployeeID, 
+        COUNT(*) AS TotalOrders
+    FROM Orders AS o
+    GROUP BY o.EmployeeID
+), lateOrders AS (
+    SELECT
+        o.EmployeeID, 
+        COUNT(*) AS LateOrders
+    FROM Orders AS o
+    WHERE o.RequiredDate <= o.ShippedDate
+    GROUP BY o.EmployeeID
+ )
+
+SELECT
+    e.EmployeeID, 
+    e.LastName, 
+    t.TotalOrders, 
+    l.LateOrders
+FROM Employees AS e
+INNER JOIN totalOrders as t 
+    ON t.EmployeeID = e.EmployeeID
+LEFT JOIN lateOrders as l 
+    ON e.EmployeeID = l.EmployeeID
+
+
+-- 45. Late orders vs. total orders - fix null Continuing on the answer for above query, 
+-- let's fix the results for row 5 - Buchanan. He should have a 0 instead of a Null in LateOrders.
+
+GO;
+WITH totalOrders AS (
+    SELECT
+        o.EmployeeID, 
+        COUNT(*) AS TotalOrders
+    FROM Orders AS o
+    GROUP BY o.EmployeeID
+), lateOrders AS (
+    SELECT
+        o.EmployeeID, 
+        COUNT(*) AS LateOrders
+    FROM Orders AS o
+    WHERE o.RequiredDate <= o.ShippedDate
+    GROUP BY o.EmployeeID
+ )
+
+SELECT
+    e.EmployeeID, 
+    e.LastName, 
+    t.TotalOrders, 
+    CASE WHEN l.LateOrders IS NULL THEN 0 ELSE l.LateOrders END AS LateOrders
+FROM Employees AS e
+INNER JOIN totalOrders as t 
+    ON t.EmployeeID = e.EmployeeID
+LEFT JOIN lateOrders as l 
+    ON e.EmployeeID = l.EmployeeID
+
+
+-- 46. Late orders vs. total orders - percentage Now we want to get the percentage of late orders 
+-- over total orders.
+
+GO;
+WITH cte AS(
+    SELECT
+        e.EmployeeID, 
+        e.LastName,
+        COUNT(*) AS TotalOrders,
+        COUNT(CASE WHEN o.RequiredDate <= o.ShippedDate THEN 1 ELSE NULL END) AS LateOrders 
+    FROM Employees AS e 
+    INNER JOIN Orders AS o 
+    ON e.EmployeeID = o.EmployeeID
+    GROUP BY    e.EmployeeID, e.LastName
+)
+SELECT 
+    EmployeeID, 
+    LastName, 
+    TotalOrders, 
+    LateOrders,
+    CONVERT(DECIMAL(10, 2), LateOrders  * 1.00/ TotalOrders) AS percentagVal
+FROM cte
+
+
+
+-- 48. Customer grouping Andrew Fuller, the VP of sales at Northwind, would like to do a 
+-- sales campaign for existing customers. He'd like to categorize customers into groups, 
+-- based on how much they ordered in 2016. Then, depending on which group the customer is in, 
+-- he will target the customer with different sales materials. The customer grouping categories
+--  are 0 to 1,000, 1,000 to 5,000, 5,000 to 10,000, and over 10,000. A good starting point for 
+--  this query is the answer from the problem “High-value customers - total orders. We don’t want 
+--  to show customers who don’t have any orders in 2016. Order the results by CustomerID.
+
+GO;
+WITH cte AS (
+
+SELECT
+    c.CustomerID,
+    c.CompanyName,
+    SUM(od.UnitPrice * od.Quantity) as TotalSales
+FROM Customers AS c 
+INNER JOIN Orders AS o 
+ON c.CustomerID = o.CustomerID
+INNER JOIN OrderDetails as od 
+on o.OrderID = od.OrderID
+WHERE YEAR(o.OrderDate) = 2016
+GROUP BY  c.CustomerID, c.CompanyName
+)
+SELECT 
+    CustomerID,
+    CompanyName,
+    TotalSales,
+    CASE WHEN TotalSales >= 10000 THEN 'Very High' 
+        WHEN TotalSales >= 5000 AND TotalSales < 10000 THEN 'High'
+        WHEN TotalSales >= 1000 AND TotalSales < 5000 THEN 'Medium'
+        WHEN TotalSales >= 0 AND TotalSales < 1000 THEN 'Low'
+        END AS customerGroup
+FROM cte
+ORDER BY CustomerID
+
+
+-- WE CAN SOLVE THIS PROBLEM WIHT OUT USING CTE
+
+SELECT
+    C.CustomerID,
+    C.CompanyName,
+    SUM(OD.UnitPrice * OD.Quantity) AS TotalSales,
+    CASE 
+        WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 0 AND 1000 THEN 'Low'
+        WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 1000 AND 5000 THEN 'Medium'
+        WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 5000 AND 10000 THEN 'High'
+        WHEN SUM(OD.UnitPrice * OD.Quantity) > 10000 THEN 'Very High'
+        END AS customerGroup
+FROM Customers AS C
+INNER JOIN Orders AS O 
+ON C.CustomerID = O.CustomerID
+INNER JOIN OrderDetails AS OD 
+ON O.OrderID = OD.OrderID 
+WHERE o.OrderDate > '20160101' AND o.OrderDate < '20170101'
+GROUP BY c.CustomerID, c.CompanyName
+
+
+-- 50. Customer grouping with percentage Based on the above query, show all the defined 
+-- CustomerGroups, and the percentage in each. Sort by the total in each group, 
+-- in descending order.
+GO
+
+;WITH cte as(
+    SELECT
+        C.CustomerID,
+        C.CompanyName,
+        SUM(OD.UnitPrice * OD.Quantity) AS TotalSales,
+        CASE 
+            WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 0 AND 1000 THEN 'Low'
+            WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 1000 AND 5000 THEN 'Medium'
+            WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 5000 AND 10000 THEN 'High'
+            WHEN SUM(OD.UnitPrice * OD.Quantity) > 10000 THEN 'Very High'
+            END AS customerGroup
+    FROM Customers AS C
+    INNER JOIN Orders AS O 
+    ON C.CustomerID = O.CustomerID
+    INNER JOIN OrderDetails AS OD 
+    ON O.OrderID = OD.OrderID 
+    WHERE o.OrderDate > '20160101' AND o.OrderDate < '20170101'
+    GROUP BY c.CustomerID, c.CompanyName
+)
+,cte2 as(
+SELECT 
+    customerGroup,
+    COUNT(*) AS TotalInGroup
+FROM cte
+GROUP BY customerGroup
+)
+SELECT
+    customerGroup,
+    TotalInGroup, 
+    TotalInGroup * 1.00 / SUM(TotalInGroup) OVER()  AS percentangInGroup
+FROM cte2
+ORDER BY TotalInGroup DESC
+
+
+-- anther solution without multiplle cte
+GO
+
+;WITH cte as(
+    SELECT
+        C.CustomerID,
+        C.CompanyName,
+        SUM(OD.UnitPrice * OD.Quantity) AS TotalSales,
+        CASE 
+            WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 0 AND 1000 THEN 'Low'
+            WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 1000 AND 5000 THEN 'Medium'
+            WHEN SUM(OD.UnitPrice * OD.Quantity) BETWEEN 5000 AND 10000 THEN 'High'
+            WHEN SUM(OD.UnitPrice * OD.Quantity) > 10000 THEN 'Very High'
+            END AS customerGroup
+    FROM Customers AS C
+    INNER JOIN Orders AS O 
+    ON C.CustomerID = O.CustomerID
+    INNER JOIN OrderDetails AS OD 
+    ON O.OrderID = OD.OrderID 
+    WHERE o.OrderDate > '20160101' AND o.OrderDate < '20170101'
+    GROUP BY c.CustomerID, c.CompanyName
+)
+
+SELECT
+    customerGroup,
+    COUNT(*) AS totalInGroup, 
+    COUNT(*) * 1.00 / (SELECT count(*) from cte) AS percentageInGroup
+FROM cte
+GROUP BY customerGroup
+ORDER BY TotalInGroup DESC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
