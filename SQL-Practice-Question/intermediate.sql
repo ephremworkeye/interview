@@ -397,9 +397,37 @@ FROM cte
 GROUP BY customerGroup
 ORDER BY TotalInGroup DESC
 
+-- 52. Countries with suppliers or customers Some Northwind employees are planning a business trip, 
+-- and would like to visit as many suppliers and customers as possible. For their planning, they’d
+--  like to see a list of all countries where suppliers and/or customers are based.
 
 
+SELECT Country
+FROM Suppliers
+UNION
+SELECT Country
+FROM Customers
+ORDER BY Country
 
+
+-- 53. Countries with suppliers or customers, version 2 The employees going on the business trip 
+-- don’t want just a raw list of countries, they want more details. We’d like to see output like
+--  the below, in the Expected Results.
+go
+;WITH customerCte as(
+SELECT distinct Country
+FROM Customers AS C
+)
+,supplierCte as(
+    SELECT distinct Country
+    FROM Suppliers
+)
+select * FROM customerCte as c FULL OUTER JOIN supplierCte as s ON c.Country = s.Country
+
+
+SELECT distinct c.Country, s.Country
+FROM Customers as c full join Suppliers as s  on c.Country = s.Country
+group by c.Country, s.Country
 
 
 
