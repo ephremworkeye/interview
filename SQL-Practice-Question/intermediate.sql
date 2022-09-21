@@ -430,23 +430,87 @@ FROM Customers as c full join Suppliers as s  on c.Country = s.Country
 group by c.Country, s.Country
 
 
+-- 54. Countries with suppliers or customers - version 3 The output of the above is improved, 
+-- but it’s still not ideal What we’d really like to see is the country name, the total suppliers,
+-- and the total customers.
+
+GO;
+WITH supplierCte AS(
+SELECT 
+    Country, 
+    COUNT(*) AS NumberOfSuppliers
+FROM Suppliers
+GROUP BY Country
+), 
+customerCte AS(
+SELECT
+    Country,
+    COUNT(*) AS NumberOfCustomers
+FROM Customers
+GROUP BY Country)
+
+SELECT 
+    CASE WHEN S.Country IS NULL THEN C.Country ELSE S.Country END AS Country,
+    ISNULL(s.NumberOfSuppliers, 0) AS NumberOfSuppliers,
+    ISNULL(c.NumberOfCustomers, 0) AS NumberOfCustomers
+FROM supplierCte as s FULL OUTER JOIN customerCte as c ON s.Country = c.Country
+
+
+-- 55. First order in each country Looking at the Orders table—we’d like to show details for each 
+-- order that was the first in that particular country, ordered by OrderID. So, we need one row 
+-- per ShipCountry, and CustomerID, OrderID, and OrderDate should be of the first order from 
+-- that country.
+
+
+; WITH cte AS(
+SELECT
+    ShipCountry, 
+    CustomerID, 
+    OrderID, 
+    CONVERT(DATE, OrderDate) AS OrderDate,
+    ROW_NUMBER() OVER(PARTITION BY ShipCountry ORDER BY ShipCountry, OrderId) AS rn
+FROM Orders
+)
+SELECT 
+   ShipCountry, 
+    CustomerID, 
+    OrderID, 
+    OrderDate
+FROM cte WHERE rn = 1
+
+
+-- 56. Customers with multiple orders in 5 day period There are some customers for whom 
+-- freight is a major expense when ordering from Northwind. However, by batching up their 
+-- orders, and making one larger order instead of multiple smaller orders in a short period 
+-- of time, they could reduce their freight costs significantly. Show those customers who 
+-- have made more than 1 order in a 5 day period. The sales people will use this to help 
+-- customers reduce their costs. Note: There are more than one way of solving this kind of 
+-- problem. For this problem, we will not be using Window functions.
 
 
 
+--CustomerID InitialOrderID InitialOrderDate NextOrderID NextOrderDate DaysBetween ---------- -------------- ---------------- ----------- ------------- -----------
 
+SELECT 
+    CustomerID AS InitialOrderID,
+    LEAD(CustomerID) OVER(ORDER BY CustomerID) AS NextOrderID,
+    OrderDate,
+    LEAD(OrderDate) OVER(ORDER BY OrderDate) AS NextOrderDate,
+    DATEDIFF(DAY, OrderDate,  LEAD(OrderDate) OVER(ORDER BY OrderDate) ) AS DayBetween
+FROM Orders
 
-
-
-
-
-
-
-
-
-
-
-
-
+go;
+WITH cte AS(
+SELECT 
+    CustomerID, Convert(date, orderdate) as orderdate,
+    orderID,
+    Convert(date, lead(orderdate) OVER(order by orderdate)) as nextorderdate,
+    DATEDIFF(day, orderdate, lead(orderdate) OVER(order by orderdate)) AS dayBetween
+FROM Orders
+WHERE CustomerID = 'BERGS'
+)
+SELECT * FROM cte
+where dayBetween <= 5
 
 
 
