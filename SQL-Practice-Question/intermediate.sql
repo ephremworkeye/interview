@@ -491,26 +491,49 @@ FROM cte WHERE rn = 1
 
 --CustomerID InitialOrderID InitialOrderDate NextOrderID NextOrderDate DaysBetween ---------- -------------- ---------------- ----------- ------------- -----------
 
-SELECT 
-    CustomerID AS InitialOrderID,
-    LEAD(CustomerID) OVER(ORDER BY CustomerID) AS NextOrderID,
-    OrderDate,
-    LEAD(OrderDate) OVER(ORDER BY OrderDate) AS NextOrderDate,
-    DATEDIFF(DAY, OrderDate,  LEAD(OrderDate) OVER(ORDER BY OrderDate) ) AS DayBetween
-FROM Orders
+GO;
 
-go;
-WITH cte AS(
-SELECT 
-    CustomerID, Convert(date, orderdate) as orderdate,
-    orderID,
-    Convert(date, lead(orderdate) OVER(order by orderdate)) as nextorderdate,
-    DATEDIFF(day, orderdate, lead(orderdate) OVER(order by orderdate)) AS dayBetween
+with cte as (
+SELECT
+    CustomerID, 
+    orderid as initialorderid,
+    Convert(date, OrderDate) as initialorderDate,
+    LEAD(orderid) OVER(PARTITION by customerID order by customerid, orderid) as nextorderid,
+    convert(date, LEAD(OrderDate) OVER( partition by customerID ORDER BY customerid, orderdate)) as nextOrderDate
+    
 FROM Orders
-WHERE CustomerID = 'BERGS'
+where customerid = 'ERNSH'
 )
-SELECT * FROM cte
-where dayBetween <= 5
+select 
+    CustomerID, 
+    initialorderid, 
+    initialorderDate, 
+    nextorderid,
+    nextOrderDate, 
+    DATEDIFF(day, initialorderDate, nextOrderDate) as daysBetween
+from cte
+where DATEDIFF(day, initialorderDate, nextOrderDate) <= 5
+
+--EXCEPT
+-- another solution using self join
+SELECT
+    firstOrder.CustomerID,
+    firstOrder.OrderID,
+    convert(date, firstorder.OrderDate) AS initialOrderDate,
+    secondOrder.OrderID,
+    convert(date, secondOrder.OrderDate) AS nextOrderDate, 
+    DATEDIFF(day, firstOrder.orderdate, secondOrder.OrderDate) as daysBetween
+FROM Orders as firstOrder
+INNER JOIN Orders as secondOrder
+on firstOrder.CustomerID = secondOrder.CustomerID
+WHERE firstOrder.orderid < secondOrder.orderid AND 
+    DATEDIFF(day, firstOrder.orderdate, secondOrder.orderdate) <= 5 --and firstOrder.CustomerID  = 'LACOR'
+    
+
+ORDER BY
+    firstOrder.CustomerID, firstOrder.OrderID
+
+
 
 
 
